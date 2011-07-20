@@ -53,7 +53,7 @@ class HappyFishBot
   end
 
   def pick_money(uid = nil)
-    own = uid != @user_info['user']['uid']
+    own = uid == @user_info['user']['uid']
     uid ||= @user_info['user']['uid']
     req = @agent.post("http://wbisland.hapyfish.com/api/initisland?ts=#{Time.now.to_i}050", "ownerUid" => uid)
     island = JSON.parse(req.body)
