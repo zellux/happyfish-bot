@@ -64,6 +64,13 @@ class HappyFishBot
       req = @agent.post("http://wbisland.hapyfish.com/api/receiveboat", "positionId" => item["id"])
     end
   end
+
+  def repair_all_buildings
+    @log.info 'Repair all buildings'
+    @island_info['islandVo']['buildings'].select{|x| x['event'] && x['event'] == 1 }.each do |item|
+      req = @agent.post("http://wbisland.hapyfish.com/api/manageplant", "ownerUid" => @user_info['user']['uid'], "itemId" => item['id'], "eventType" => 1)
+    end
+  end
 end
   
 bot = HappyFishBot.new
@@ -71,4 +78,4 @@ bot.signin
 bot.reload
 bot.pick_own_money
 bot.receive_all_boats
-
+bot.repair_all_buildings
