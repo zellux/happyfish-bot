@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 $: << '.'
 
 require 'yaml'
@@ -34,7 +35,11 @@ class HappyFishBot
     end
     
     @log.info 'Logging into happy fish game ...'
-    html = @agent.get(@config['session']).body
+    req = @agent.get(@config['session'])
+    if req.body[/problem1.gif/]
+      @config['session'] = nil
+      signin
+    end
   end
 
   def reload
@@ -66,7 +71,7 @@ class HappyFishBot
   end
 
   def repair_all_buildings
-    @log.info 'Repair all buildings'
+    @log.info 'Repairing all buildings'
     @island_info['islandVo']['buildings'].select{|x| x['event'] && x['event'] == 1 }.each do |item|
       req = @agent.post("http://wbisland.hapyfish.com/api/manageplant", "ownerUid" => @user_info['user']['uid'], "itemId" => item['id'], "eventType" => 1)
     end
