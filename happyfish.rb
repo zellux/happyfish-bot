@@ -48,19 +48,31 @@ class HappyFishBot
     @user_info = JSON.parse(req.body)
     req = @agent.post("http://wbisland.hapyfish.com/api/initisland?ts=#{Time.now.to_i}050", "ownerUid" => @user_info['user']['uid'])
     @island_info = JSON.parse(req.body)
-    File.open('island.yml', 'w').write(JSON.pretty_generate(@island_info))
+    req = @agent.post("http://wbisland.hapyfish.com/api/getfriends", "pageIndex" => "1", "pageSize" => 350000)
+    @friends_info = JSON.parse(req.body)
   end
 
-  def pick_own_money
-    @log.info 'Picking up own money ...'
+  def pick_money(uid = nil)
+    own = uid != @user_info['user']['uid']
+    uid ||= @user_info['user']['uid']
+    req = @agent.post("http://wbisland.hapyfish.com/api/initisland?ts=#{Time.now.to_i}050", "ownerUid" => uid)
+    island = JSON.parse(req.body)
+    File.open('friend.yml', 'w').write(JSON.pretty_generate(island))
     expsum = coinsum = 0
-    @island_info['islandVo']['buildings'].select{|x| x['deposit'] && x['deposit'].to_i > 0 }.each do |item|
-      req = @agent.post("http://wbisland.hapyfish.com/api/harvestplant?ts=#{Time.now.to_i}050", "itemId" => item["id"])
+    island['islandVo']['buildings'].select{|x| x['deposit'] && x['deposit'].to_i > 0 }.each do |item|
+      if own
+        req = @agent.post("http://wbisland.hapyfish.com/api/harvestplant?ts=#{Time.now.to_i}050", "itemId" => item["id"])
+      else
+        next if item['hasSteal'] == 1
+        req = @agent.post("http://wbisland.hapyfish.com/api/moochplant", "fid" => uid, "itemId" => item["id"])
+      end
       response = JSON.parse(req.body)
-      exp = response['expChange'].to_i rescue 0
-      coin = response['coinChange'].to_i rescue 0
+      exp = response['expChange'].to_s.to_i rescue 0
+      coin = response['coinChange'].to_s.to_i rescue 0
+      expsum += exp
+      coinsum += coin
     end
-    @log.info "Received #{expsum} EXP, #{coinsum} coins"
+    @log.info "Received #{expsum} EXP, #{coinsum} coins from island ##{uid}"
   end
 
   def receive_all_boats
@@ -76,11 +88,17 @@ class HappyFishBot
       req = @agent.post("http://wbisland.hapyfish.com/api/manageplant", "ownerUid" => @user_info['user']['uid'], "itemId" => item['id'], "eventType" => 1)
     end
   end
+
+  def pick_all_money
+    @friends_info['friends'].each do |f|
+      pick_money(f['uid'].to_s)
+    end
+  end
 end
   
 bot = HappyFishBot.new
 bot.signin
 bot.reload
-bot.pick_own_money
 bot.receive_all_boats
 bot.repair_all_buildings
+bot.pick_all_money
