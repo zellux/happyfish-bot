@@ -22,7 +22,6 @@ class HappyFishBot
     }
 
     @log = Logger.new(STDOUT)
-    @mutex = Mutex.new
   end
   
   def signin
@@ -46,21 +45,14 @@ class HappyFishBot
     @island_info = JSON.parse(req.body)
   end
 
-  def pick_own_money()
+  def pick_own_money
     @log.info 'Picking up own money ...'
     expsum = coinsum = 0
-    @island_info['islandVo']['buildings'].select{|x| x['deposit'] }.each do |item|
-      Thread.new {
-        req = @agent.post("http://wbisland.hapyfish.com/api/harvestplant?ts=#{Time.now.to_i}050", "itemId" => item["id"])
-        response = JSON.parse(req.body)
-        exp = response['expChange'].to_i rescue 0
-        coin = response['coinChange'].to_i rescue 0
-        @mutex.synchronize {
-          expsum += exp
-          coinsum += coin
-        }
-      }.join
-      
+    @island_info['islandVo']['buildings'].select{|x| x['deposit'] && x['deposit'].to_i > 0 }.each do |item|
+      req = @agent.post("http://wbisland.hapyfish.com/api/harvestplant?ts=#{Time.now.to_i}050", "itemId" => item["id"])
+      response = JSON.parse(req.body)
+      exp = response['expChange'].to_i rescue 0
+      coin = response['coinChange'].to_i rescue 0
     end
     @log.info "Received #{expsum} EXP, #{coinsum} coins"
   end
