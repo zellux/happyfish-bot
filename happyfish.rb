@@ -56,10 +56,18 @@ class HappyFishBot
     end
     @log.info "Received #{expsum} EXP, #{coinsum} coins"
   end
-  
+
+  def receive_all_boats
+    @log.info 'Receiving all boats'
+    @island_info['dockVo']['boatPositions'].select{|x| x['state'] == 'arrive_1' }.each do |item|
+      req = @agent.post("http://wbisland.hapyfish.com/api/receiveboat", "positionId" => item["boatId"])
+    end
+  end
 end
   
 bot = HappyFishBot.new
 bot.signin
 bot.reload
 bot.pick_own_money
+bot.receive_all_boats
+
