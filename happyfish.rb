@@ -43,7 +43,7 @@ class HappyFishBot
     @user_info = JSON.parse(req.body)
     req = @agent.post("http://wbisland.hapyfish.com/api/initisland?ts=#{Time.now.to_i}050", "ownerUid" => @user_info['user']['uid'])
     @island_info = JSON.parse(req.body)
-    File.open('island.yml', 'w').write(JSON.pretty_print(@island_info))
+    File.open('island.yml', 'w').write(JSON.pretty_generate(@island_info))
   end
 
   def pick_own_money
@@ -61,7 +61,7 @@ class HappyFishBot
   def receive_all_boats
     @log.info 'Receiving all boats'
     @island_info['dockVo']['boatPositions'].select{|x| x['state'] == 'arrive_1' }.each do |item|
-      req = @agent.post("http://wbisland.hapyfish.com/api/receiveboat", "positionId" => item["boatId"])
+      req = @agent.post("http://wbisland.hapyfish.com/api/receiveboat", "positionId" => item["id"])
     end
   end
 end
