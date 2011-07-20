@@ -27,6 +27,5 @@ def login(agent, username, password)
   location = req.body[/location.replace\("(.*)"\)/, 1]
   req = agent.get(location)
   req = agent.get('http://www.weibo.com')
-  puts req.body
 end
 
