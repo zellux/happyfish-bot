@@ -77,9 +77,9 @@ class HappyFishBot
 
   def receive_boats(uid)
     own = uid == @user_info['user']['uid']
-    @log.info 'Receiving all boats'
     req = @agent.post("http://wbisland.hapyfish.com/api/initisland?ts=#{Time.now.to_i}050", "ownerUid" => uid)
     island = JSON.parse(req.body)
+    expsum = 0
     island['dockVo']['boatPositions'].select{|x| x['state'] == 'arrive_1' }.each do |item|
       if own
         req = @agent.post("http://wbisland.hapyfish.com/api/receiveboat", "positionId" => item["id"])
@@ -87,14 +87,24 @@ class HappyFishBot
         next if not item['canSteal']
         req = @agent.post("http://wbisland.hapyfish.com/api/moochvisitor", "ownerUid" => uid, "positionId" => item["id"])
       end
+      response = JSON.parse(req.body)
+      exp = response['expChange'].to_s.to_i rescue 0
+      expsum += exp
     end
+    @log.info "Received #{expsum} EXP by picking up visitors from island ##{uid}"
   end
 
-  def repair_all_buildings
-    @log.info 'Repairing all buildings'
-    @island_info['islandVo']['buildings'].select{|x| x['event'] && x['event'] == 1 }.each do |item|
+  def repair_buildings(uid)
+    req = @agent.post("http://wbisland.hapyfish.com/api/initisland?ts=#{Time.now.to_i}050", "ownerUid" => uid)
+    island = JSON.parse(req.body)
+    expsum = 0
+    island['islandVo']['buildings'].select{|x| x['event'] && x['event'] == 1 }.each do |item|
       req = @agent.post("http://wbisland.hapyfish.com/api/manageplant", "ownerUid" => @user_info['user']['uid'], "itemId" => item['id'], "eventType" => 1)
+      response = JSON.parse(req.body)
+      exp = response['expChange'].to_s.to_i rescue 0
+      expsum += exp
     end
+    @log.info "Received #{expsum} EXP by reparing buildings in island ##{uid}"
   end
 
   def pick_all_money
@@ -106,6 +116,12 @@ class HappyFishBot
   def receive_all_boats
     @friends_info['friends'].each do |f|
       receive_boats(f['uid'].to_s)
+    end
+  end
+  
+  def repair_all_buildings
+    @friends_info['friends'].each do |f|
+      repair_buildings(f['uid'].to_s)
     end
   end
 end
