@@ -31,7 +31,7 @@ class HappyFishBot
       agent.user_agent_alias = 'Mac Safari'
     }
 
-    @log = Logger.new(STDOUT)
+    @log = Logger.new(STDERR)
     @scheduler = Scheduler.new
   end
   
@@ -55,14 +55,9 @@ class HappyFishBot
   def reload
     @log.info 'Loading user data ...'
     req = @agent.post("#{API_ROOT}/api/inituserinfo", "first" => "1")
-    puts req.body
     @user_info = JSON.parse(req.body)
-    puts req.body
-    req = @agent.post("#{API_ROOT}/api/initisland?ts=#{Time.now.to_i}050", "ownerUid" => @user_info['user']['uid'])
-    @island_info = JSON.parse(req.body)
     req = @agent.post("#{API_ROOT}/api/getfriends", "pageIndex" => "1", "pageSize" => 350000)
     @friends_info = JSON.parse(req.body)
-    export_json(@island_info, 'island.yml')
   end
 
   def pick_single_money(uid, item)
@@ -187,8 +182,19 @@ class HappyFishBot
     # end
   end
 
-  def scheduler
-    @scheduler
+  def analyse_all_users
+    @friends_info['friends'].each do |f|
+      analyse_user(f['uid'].to_s)
+    end
   end
+
+  def refresh_data
+    # repair_all_buildings
+    # analyse_all_users
+    analyse_user('2221')
+    @scheduler.add_event(Time.now + 300, method(:refresh_data), "Refresh data")
+  end
+
+  attr_reader :scheduler
 end
 
