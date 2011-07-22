@@ -7,6 +7,12 @@ require 'sina'
 require 'logger'
 require 'json'
 
+def export_json(json, filename)
+  File.open(filename, 'w') do |out|
+    out.write(JSON.pretty_generate(json))
+  end
+end
+
 class HappyFishBot
   def initialize
     @config = YAML::load_file('config.yml') rescue {}
@@ -50,6 +56,7 @@ class HappyFishBot
     @island_info = JSON.parse(req.body)
     req = @agent.post("http://wbisland.hapyfish.com/api/getfriends", "pageIndex" => "1", "pageSize" => 350000)
     @friends_info = JSON.parse(req.body)
+    export_json(@island_info, 'island.yml')
   end
 
   def pick_money(uid = nil)
@@ -98,6 +105,7 @@ class HappyFishBot
     req = @agent.post("http://wbisland.hapyfish.com/api/initisland?ts=#{Time.now.to_i}050", "ownerUid" => uid)
     island = JSON.parse(req.body)
     expsum = 0
+    # export_json(island, 'friend.yml')
     island['islandVo']['buildings'].select{|x| x['event'] && x['event'] == 1 }.each do |item|
       req = @agent.post("http://wbisland.hapyfish.com/api/manageplant", "ownerUid" => @user_info['user']['uid'], "itemId" => item['id'], "eventType" => 1)
       response = JSON.parse(req.body)
