@@ -33,6 +33,7 @@ class HappyFishBot
 
     @log = Logger.new(STDERR)
     @scheduler = Scheduler.new
+    @friends_list = Hash.new
   end
   
   def signin
@@ -58,6 +59,10 @@ class HappyFishBot
     @user_info = JSON.parse(req.body)
     req = @agent.post("#{API_ROOT}/api/getfriends", "pageIndex" => "1", "pageSize" => 350000)
     @friends_info = JSON.parse(req.body)
+    @friends_info['friends'].each do |f|
+      @friends_list[f['uid']] = f['name']
+    end
+    export_json(@friends_info, 'friend.yml')
   end
 
   def pick_single_money(uid, item)
@@ -70,7 +75,7 @@ class HappyFishBot
     response = JSON.parse(req.body)
     exp = response['expChange'].to_s.to_i rescue 0
     coin = response['coinChange'].to_s.to_i rescue 0
-    @log.info "Received #{exp} EXP, #{coin} coins from island ##{uid}"
+    @log.info "Received #{exp} EXP, #{coin} coins from island #{@friends_list[uid]}"
     [exp, coin]
   end
   
@@ -103,7 +108,7 @@ class HappyFishBot
     end
     response = JSON.parse(req.body)
     exp = response['result']['expChange'].to_s.to_i rescue 0
-    @log.info "Received #{exp} EXP by picking up visitors from island ##{uid}"
+    @log.info "Received #{exp} EXP by picking up visitors from island #{@friends_list[uid]}"
   end
 
   def receive_boats(uid)
