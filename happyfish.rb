@@ -157,12 +157,13 @@ class HappyFishBot
 
   def analyse_user(uid)
     req = @agent.post("#{API_ROOT}/api/initisland?ts=#{Time.now.to_i}050", "ownerUid" => uid)
+    own = uid == @user_info['user']['uid']
     island = JSON.parse(req.body)
     export_json(island, "island.yml")
     time = Time.now
     island['dockVo']['boatPositions'].each do |item|
       remaining = item['time']
-      next if not remaining or not item['canSteal']
+      next if not remaining or not item['canSteal'] or (not own and item['visitorNum'] <= 1)
       remaining = -remaining
       title = "Pick visitors #{item['id']} from #{uid}"
       if remaining <= 0
@@ -176,7 +177,6 @@ class HappyFishBot
       remaining = item['payRemainder']
       deposit = item['deposit'].to_s.to_i rescue 0
       title = "Pick money #{item['id']} from #{uid}"
-      own = uid == @user_info['user']['uid']
       next if not remaining or deposit <= 0 or (not own and (item['hasSteal'] == true or item['hasSteal'] == 1))
       if remaining <= 0
         @scheduler.add_event(time, Proc.new {pick_single_money(uid, item['id']) }, title)
@@ -194,9 +194,8 @@ class HappyFishBot
 
   def refresh_data
     # repair_all_buildings
-    # analyse_user '2221'
     analyse_all_users
-    @scheduler.add_event(Time.now + 600, method(:refresh_data), "Refresh data")
+    @scheduler.add_event(Time.now + 1800, method(:refresh_data), "Refresh data")
   end
 
   attr_reader :scheduler
