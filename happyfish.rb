@@ -6,6 +6,7 @@ require 'highline/import'
 require 'sina'
 require 'logger'
 require 'json'
+require 'scheduler'
 
 def export_json(json, filename)
   File.open(filename, 'w') do |out|
@@ -29,6 +30,7 @@ class HappyFishBot
     }
 
     @log = Logger.new(STDOUT)
+    @scheduler = Scheduler.new
   end
   
   def signin
@@ -145,11 +147,25 @@ class HappyFishBot
       repair_buildings(f['uid'].to_s)
     end
   end
+
+  def analyse_user(uid)
+    req = @agent.post("http://wbisland.hapyfish.com/api/initisland?ts=#{Time.now.to_i}050", "ownerUid" => uid)
+    island = JSON.parse(req.body)
+    time = Time.now
+    island['dockVo']['boatPositions'].each do |item|
+      remaining = item['time']
+      next if not remaining
+      title = "Steal boat #{item['id']} from #{uid}"
+      if remaining > 0
+        @scheduler.add_event(time, Proc.new {receive_single_boat(uid, item['id']) }, title)
+      else
+        @scheduler.add_event(time - remaining, Proc.new {receive_single_boat(uid, item['id']) }, title)
+      end
+    end
+  end
+
+  def scheduler
+    @scheduler
+  end
 end
-  
-bot = HappyFishBot.new
-bot.signin
-bot.reload
-bot.receive_all_boats
-bot.repair_all_buildings
-bot.pick_all_money
+
