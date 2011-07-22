@@ -28,9 +28,10 @@ class HappyFishBot
     }
 
     @agent = Mechanize.new { |agent|
-      agent.user_agent_alias = 'Mac Safari'
+      agent.user_agent_alias = 'Windows Mozilla'
     }
 
+    @agent.set_proxy('127.0.0.1', 8080)
     @log = Logger.new(STDERR)
     @scheduler = Scheduler.new
     @friends_list = Hash.new
@@ -48,21 +49,33 @@ class HappyFishBot
     @log.info 'Logging into happy fish game ...'
     req = @agent.get(@config['session'])
     if req.body[/problem1.gif/]
+      @log.info 'Session data outdated, creating new session ...'
       @config['session'] = nil
       signin
+      return
     end
   end
 
-  def reload
+  def reload(again=false)
     @log.info 'Loading user data ...'
     req = @agent.post("#{API_ROOT}/api/inituserinfo", "first" => "1")
     @user_info = JSON.parse(req.body)
+    export_json(@user_info, 'userinfo.yml')
+    if @user_info['status'] == '-1'
+      if again
+        throw "Failed to load user data"
+      end
+      @config['session'] = nil
+      signin
+      reload(true)
+    end
+    
     req = @agent.post("#{API_ROOT}/api/getfriends", "pageIndex" => "1", "pageSize" => 350000)
     @friends_info = JSON.parse(req.body)
+    export_json(@friends_info, 'friend.yml')
     @friends_info['friends'].each do |f|
       @friends_list[f['uid']] = f['name']
     end
-    export_json(@friends_info, 'friend.yml')
   end
 
   def pick_single_money(uid, item)
