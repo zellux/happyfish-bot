@@ -213,6 +213,11 @@ class HappyFishBot
     @scheduler.add_event(Time.now + 1800, method(:refresh_data), "Refresh data")
   end
 
+  def building_check
+    repair_all_buildings
+    @scheduler.add_event(Time.now + 300, method(:building_check), "Repair all buildings")
+  end
+  
   attr_reader :scheduler
 end
 
