@@ -176,7 +176,8 @@ class HappyFishBot
       remaining = item['payRemainder']
       deposit = item['deposit'].to_s.to_i rescue 0
       title = "Pick money #{item['id']} from #{uid}"
-      next if not remaining or deposit <= 0 or item['hasSteal']
+      own = uid == @user_info['user']['uid']
+      next if not remaining or deposit <= 0 or (not own and (item['hasSteal'] == true or item['hasSteal'] == 1))
       if remaining <= 0
         @scheduler.add_event(time, Proc.new {pick_single_money(uid, item['id']) }, title)
       else
@@ -193,7 +194,7 @@ class HappyFishBot
 
   def refresh_data
     # repair_all_buildings
-    # analyse_user '2492'
+    # analyse_user '2221'
     analyse_all_users
     @scheduler.add_event(Time.now + 600, method(:refresh_data), "Refresh data")
   end
