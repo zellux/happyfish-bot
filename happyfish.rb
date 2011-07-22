@@ -69,7 +69,11 @@ class HappyFishBot
       signin
       reload(true)
     end
-    
+
+    load_friends
+  end
+
+  def load_friends
     req = @agent.post("#{API_ROOT}/api/getfriends", "pageIndex" => "1", "pageSize" => 350000)
     @friends_info = JSON.parse(req.body)
     export_json(@friends_info, 'friend.yml')
@@ -209,6 +213,7 @@ class HappyFishBot
 
   def refresh_data
     # repair_all_buildings
+    load_friends
     analyse_all_users
     @scheduler.add_event(Time.now + 1800, method(:refresh_data), "Refresh data")
   end
