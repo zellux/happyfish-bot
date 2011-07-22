@@ -1,19 +1,23 @@
 require 'ostruct'
 require 'logger'
+require 'set'
 
 class Scheduler
   def initialize
     @events = []
+    @event_keys = Set.new
     @log = Logger.new(STDERR)
   end
 
   def add_event(time, proc, title="")
+    return if not title.empty? and @event_keys.include? title
     event = OpenStruct.new
     event.time = time
     event.proc = proc
     event.title = title
     @events << event
-    @events.sort! {|x,y| x.time <=> y.time }
+    @event_keys.add title
+    @events.sort! {|x,y| [x.time, x.title] <=> [y.time, y.title] }
   end
 
   def next_event
@@ -30,6 +34,7 @@ class Scheduler
     did = false
     while Time.now > @events[0].time
       event = @events.shift
+      @event_keys.delete event.title
       @log.info "Working on #{event.title}"
       event.proc.call
       did = true
