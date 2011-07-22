@@ -3,19 +3,14 @@ $: << '.'
 require 'happyfish'
 
 bot = HappyFishBot.new
-# bot.signin
-# bot.reload
-bot.analyse_user('2221')
-# bot.receive_all_boats
-# bot.repair_all_buildings
-# bot.pick_all_money
+bot.signin
+bot.reload
 
 scheduler = bot.scheduler
-scheduler.add_event(Time.now + 2, Proc.new {puts "Hello world!" }, "Test")
+scheduler.add_event(Time.now, bot.method(:refresh_data), "Refresh data")
 scheduler.dump_events()
 
 while true
-  scheduler.do_anything
   sleep(1)
+  scheduler.do_anything
 end
-

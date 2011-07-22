@@ -1,8 +1,10 @@
 require 'ostruct'
+require 'logger'
 
 class Scheduler
   def initialize
     @events = []
+    @log = Logger.new(STDERR)
   end
 
   def add_event(time, proc, title="")
@@ -19,18 +21,22 @@ class Scheduler
   end
 
   def dump_events
-    @events.each {|e| puts "#{e.title} at #{e.time}" }
+    @log.info '-' * 20
+    @events.each {|e| @log.info "#{e.title} at #{e.time}" }
+    @log.info '-' * 20
   end
 
   def do_anything
     did = false
     while Time.now > @events[0].time
       event = @events.shift
+      @log.info "Working on #{event.title}"
       event.proc.call
       did = true
     end
     if did and not @events.empty?
-      puts "Next event will be handled #{(@events[0].time - Time.now).to_i} seconds later"
+      dump_events
+      @log.info "Next event will be handled #{(@events[0].time - Time.now).to_i} seconds later"
     end
   end
 end
