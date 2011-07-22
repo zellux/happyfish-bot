@@ -59,60 +59,31 @@ class HappyFishBot
     export_json(@island_info, 'island.yml')
   end
 
-  def pick_money(uid = nil)
+  def pick_single_money(uid, item)
     own = uid == @user_info['user']['uid']
-    uid ||= @user_info['user']['uid']
+    if own
+      req = @agent.post("http://wbisland.hapyfish.com/api/harvestplant?ts=#{Time.now.to_i}050", "itemId" => item)
+    else
+      req = @agent.post("http://wbisland.hapyfish.com/api/moochplant", "fid" => uid, "itemId" => item)
+    end
+    response = JSON.parse(req.body)
+    exp = response['expChange'].to_s.to_i rescue 0
+    coin = response['coinChange'].to_s.to_i rescue 0
+    [exp, coin]
+  end
+  
+  def pick_money(uid = nil)
     req = @agent.post("http://wbisland.hapyfish.com/api/initisland?ts=#{Time.now.to_i}050", "ownerUid" => uid)
     island = JSON.parse(req.body)
     File.open('friend.yml', 'w').write(JSON.pretty_generate(island))
     expsum = coinsum = 0
     island['islandVo']['buildings'].select{|x| x['deposit'] && x['deposit'].to_i > 0 }.each do |item|
-      if own
-        req = @agent.post("http://wbisland.hapyfish.com/api/harvestplant?ts=#{Time.now.to_i}050", "itemId" => item["id"])
-      else
-        next if item['hasSteal'] == 1
-        req = @agent.post("http://wbisland.hapyfish.com/api/moochplant", "fid" => uid, "itemId" => item["id"])
-      end
-      response = JSON.parse(req.body)
-      exp = response['expChange'].to_s.to_i rescue 0
-      coin = response['coinChange'].to_s.to_i rescue 0
+      next if uid != @user_info['user']['uid'] and item['hasSteal'] == 1
+      exp, coin = pick_single_money(uid, item['id'])
       expsum += exp
       coinsum += coin
     end
     @log.info "Received #{expsum} EXP, #{coinsum} coins from island ##{uid}"
-  end
-
-  def receive_boats(uid)
-    own = uid == @user_info['user']['uid']
-    req = @agent.post("http://wbisland.hapyfish.com/api/initisland?ts=#{Time.now.to_i}050", "ownerUid" => uid)
-    island = JSON.parse(req.body)
-    expsum = 0
-    island['dockVo']['boatPositions'].select{|x| x['state'] == 'arrive_1' }.each do |item|
-      if own
-        req = @agent.post("http://wbisland.hapyfish.com/api/receiveboat", "positionId" => item["id"])
-      else
-        next if not item['canSteal']
-        req = @agent.post("http://wbisland.hapyfish.com/api/moochvisitor", "ownerUid" => uid, "positionId" => item["id"])
-      end
-      response = JSON.parse(req.body)
-      exp = response['expChange'].to_s.to_i rescue 0
-      expsum += exp
-    end
-    @log.info "Received #{expsum} EXP by picking up visitors from island ##{uid}"
-  end
-
-  def repair_buildings(uid)
-    req = @agent.post("http://wbisland.hapyfish.com/api/initisland?ts=#{Time.now.to_i}050", "ownerUid" => uid)
-    island = JSON.parse(req.body)
-    expsum = 0
-    # export_json(island, 'friend.yml')
-    island['islandVo']['buildings'].select{|x| x['event'] && x['event'] == 1 }.each do |item|
-      req = @agent.post("http://wbisland.hapyfish.com/api/manageplant", "ownerUid" => @user_info['user']['uid'], "itemId" => item['id'], "eventType" => 1)
-      response = JSON.parse(req.body)
-      exp = response['expChange'].to_s.to_i rescue 0
-      expsum += exp
-    end
-    @log.info "Received #{expsum} EXP by reparing buildings in island ##{uid}"
   end
 
   def pick_all_money
@@ -121,12 +92,54 @@ class HappyFishBot
     end
   end
 
+  def receive_single_boat(uid, pos)
+    own = uid == @user_info['user']['uid']
+    if own
+      req = @agent.post("http://wbisland.hapyfish.com/api/receiveboat", "positionId" => pos)
+    else
+      req = @agent.post("http://wbisland.hapyfish.com/api/moochvisitor", "ownerUid" => uid, "positionId" => pos)
+    end
+    response = JSON.parse(req.body)
+    response['expChange'].to_s.to_i rescue 0
+  end
+
+  def receive_boats(uid)
+    req = @agent.post("http://wbisland.hapyfish.com/api/initisland?ts=#{Time.now.to_i}050", "ownerUid" => uid)
+    island = JSON.parse(req.body)
+    expsum = 0
+    island['dockVo']['boatPositions'].select{|x| x['state'] == 'arrive_1' }.each do |item|
+      next if uid != @user_info['user']['uid'] and item['canSteal'] != 1
+      exp = receive_single_boat(uid, item["id"])
+      expsum += exp
+    end
+    @log.info "Received #{expsum} EXP by picking up visitors from island ##{uid}"
+  end
+
   def receive_all_boats
     @friends_info['friends'].each do |f|
       receive_boats(f['uid'].to_s)
     end
   end
   
+  def repair_single_building(uid, item, event)
+    req = @agent.post("http://wbisland.hapyfish.com/api/manageplant", "ownerUid" => uid, "itemId" => item, "eventType" => event)
+    response = JSON.parse(req.body)
+    puts response
+    response['resultVo']['expChange'].to_s.to_i rescue 0
+  end
+  
+  def repair_buildings(uid)
+    req = @agent.post("http://wbisland.hapyfish.com/api/initisland?ts=#{Time.now.to_i}050", "ownerUid" => uid)
+    island = JSON.parse(req.body)
+    expsum = 0
+    # export_json(island, 'friend.yml')
+    island['islandVo']['buildings'].select{|x| x['event'] && x['event'] == 1 }.each do |item|
+      exp = repair_single_building(uid, item['id'], 1)
+      expsum += exp
+    end
+    @log.info "Received #{expsum} EXP by reparing buildings in island ##{uid}"
+  end
+
   def repair_all_buildings
     @friends_info['friends'].each do |f|
       repair_buildings(f['uid'].to_s)
