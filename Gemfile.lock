@@ -3,16 +3,9 @@ GEM
   specs:
     algorithms (0.3.0)
     highline (1.6.2)
-    mechanize (2.0.1)
-      net-http-digest_auth (~> 1.1, >= 1.1.1)
-      net-http-persistent (~> 1.8)
-      nokogiri (~> 1.4)
-      webrobots (~> 0.0, >= 0.0.9)
-    net-http-digest_auth (1.1.1)
-    net-http-persistent (1.8)
+    mechanize (1.0.0)
+      nokogiri (>= 1.2.1)
     nokogiri (1.5.0)
-    webrobots (0.0.10)
-      nokogiri (>= 1.4.4)
 
 PLATFORMS
   ruby
@@ -20,4 +13,4 @@ PLATFORMS
 DEPENDENCIES
   algorithms
   highline
-  mechanize
+  mechanize (= 1.0.0)
