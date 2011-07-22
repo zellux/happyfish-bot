@@ -8,6 +8,8 @@ require 'logger'
 require 'json'
 require 'scheduler'
 
+API_ROOT = "http://t.happyfishgame.com.cn"
+
 def export_json(json, filename)
   File.open(filename, 'w') do |out|
     out.write(JSON.pretty_generate(json))
@@ -52,11 +54,13 @@ class HappyFishBot
 
   def reload
     @log.info 'Loading user data ...'
-    req = @agent.post("http://wbisland.hapyfish.com/api/inituserinfo", "first" => "1")
+    req = @agent.post("#{API_ROOT}/api/inituserinfo", "first" => "1")
+    puts req.body
     @user_info = JSON.parse(req.body)
-    req = @agent.post("http://wbisland.hapyfish.com/api/initisland?ts=#{Time.now.to_i}050", "ownerUid" => @user_info['user']['uid'])
+    puts req.body
+    req = @agent.post("#{API_ROOT}/api/initisland?ts=#{Time.now.to_i}050", "ownerUid" => @user_info['user']['uid'])
     @island_info = JSON.parse(req.body)
-    req = @agent.post("http://wbisland.hapyfish.com/api/getfriends", "pageIndex" => "1", "pageSize" => 350000)
+    req = @agent.post("#{API_ROOT}/api/getfriends", "pageIndex" => "1", "pageSize" => 350000)
     @friends_info = JSON.parse(req.body)
     export_json(@island_info, 'island.yml')
   end
@@ -64,9 +68,9 @@ class HappyFishBot
   def pick_single_money(uid, item)
     own = uid == @user_info['user']['uid']
     if own
-      req = @agent.post("http://wbisland.hapyfish.com/api/harvestplant?ts=#{Time.now.to_i}050", "itemId" => item)
+      req = @agent.post("#{API_ROOT}/api/harvestplant?ts=#{Time.now.to_i}050", "itemId" => item)
     else
-      req = @agent.post("http://wbisland.hapyfish.com/api/moochplant", "fid" => uid, "itemId" => item)
+      req = @agent.post("#{API_ROOT}/api/moochplant", "fid" => uid, "itemId" => item)
     end
     response = JSON.parse(req.body)
     exp = response['expChange'].to_s.to_i rescue 0
@@ -75,7 +79,7 @@ class HappyFishBot
   end
   
   def pick_money(uid = nil)
-    req = @agent.post("http://wbisland.hapyfish.com/api/initisland?ts=#{Time.now.to_i}050", "ownerUid" => uid)
+    req = @agent.post("#{API_ROOT}/api/initisland?ts=#{Time.now.to_i}050", "ownerUid" => uid)
     island = JSON.parse(req.body)
     File.open('friend.yml', 'w').write(JSON.pretty_generate(island))
     expsum = coinsum = 0
@@ -97,16 +101,16 @@ class HappyFishBot
   def receive_single_boat(uid, pos)
     own = uid == @user_info['user']['uid']
     if own
-      req = @agent.post("http://wbisland.hapyfish.com/api/receiveboat", "positionId" => pos)
+      req = @agent.post("#{API_ROOT}/api/receiveboat", "positionId" => pos)
     else
-      req = @agent.post("http://wbisland.hapyfish.com/api/moochvisitor", "ownerUid" => uid, "positionId" => pos)
+      req = @agent.post("#{API_ROOT}/api/moochvisitor", "ownerUid" => uid, "positionId" => pos)
     end
     response = JSON.parse(req.body)
     response['expChange'].to_s.to_i rescue 0
   end
 
   def receive_boats(uid)
-    req = @agent.post("http://wbisland.hapyfish.com/api/initisland?ts=#{Time.now.to_i}050", "ownerUid" => uid)
+    req = @agent.post("#{API_ROOT}/api/initisland?ts=#{Time.now.to_i}050", "ownerUid" => uid)
     island = JSON.parse(req.body)
     expsum = 0
     island['dockVo']['boatPositions'].select{|x| x['state'] == 'arrive_1' }.each do |item|
@@ -124,14 +128,14 @@ class HappyFishBot
   end
   
   def repair_single_building(uid, item, event)
-    req = @agent.post("http://wbisland.hapyfish.com/api/manageplant", "ownerUid" => uid, "itemId" => item, "eventType" => event)
+    req = @agent.post("#{API_ROOT}/api/manageplant", "ownerUid" => uid, "itemId" => item, "eventType" => event)
     response = JSON.parse(req.body)
     puts response
     response['resultVo']['expChange'].to_s.to_i rescue 0
   end
   
   def repair_buildings(uid)
-    req = @agent.post("http://wbisland.hapyfish.com/api/initisland?ts=#{Time.now.to_i}050", "ownerUid" => uid)
+    req = @agent.post("#{API_ROOT}/api/initisland?ts=#{Time.now.to_i}050", "ownerUid" => uid)
     island = JSON.parse(req.body)
     expsum = 0
     # export_json(island, 'friend.yml')
@@ -149,7 +153,7 @@ class HappyFishBot
   end
 
   def analyse_user(uid)
-    req = @agent.post("http://wbisland.hapyfish.com/api/initisland?ts=#{Time.now.to_i}050", "ownerUid" => uid)
+    req = @agent.post("#{API_ROOT}/api/initisland?ts=#{Time.now.to_i}050", "ownerUid" => uid)
     island = JSON.parse(req.body)
     time = Time.now
     island['dockVo']['boatPositions'].each do |item|
@@ -162,6 +166,25 @@ class HappyFishBot
         @scheduler.add_event(time - remaining, Proc.new {receive_single_boat(uid, item['id']) }, title)
       end
     end
+
+    # island['islandVo']['buildings'].select{|x| x['deposit'] && x['deposit'].to_i > 0 }.each do |item|
+    #   next if uid != @user_info['user']['uid'] and item['hasSteal'] == 1
+    #   exp, coin = pick_single_money(uid, item['id'])
+    #   expsum += exp
+    #   coinsum += coin
+    # end
+    
+    # island['islandVo']['buildings'].each do |item|
+    #   next if uid != @user_info['user']['uid'] and item['hasSteal'] == 1
+    #   remaining = item['time']
+    #   next if not remaining
+    #   title = "Steal boat #{item['id']} from #{uid}"
+    #   if remaining > 0
+    #     @scheduler.add_event(time, Proc.new {receive_single_boat(uid, item['id']) }, title)
+    #   else
+    #     @scheduler.add_event(time - remaining, Proc.new {receive_single_boat(uid, item['id']) }, title)
+    #   end
+    # end
   end
 
   def scheduler
