@@ -70,6 +70,7 @@ class HappyFishBot
     response = JSON.parse(req.body)
     exp = response['expChange'].to_s.to_i rescue 0
     coin = response['coinChange'].to_s.to_i rescue 0
+    @log.info "Received #{exp} EXP, #{coin} coins from island ##{uid}"
     [exp, coin]
   end
   
@@ -101,7 +102,8 @@ class HappyFishBot
       req = @agent.post("#{API_ROOT}/api/moochvisitor", "ownerUid" => uid, "positionId" => pos)
     end
     response = JSON.parse(req.body)
-    response['expChange'].to_s.to_i rescue 0
+    exp = response['result']['expChange'].to_s.to_i rescue 0
+    @log.info "Received #{exp} EXP by picking up visitors from island ##{uid}"
   end
 
   def receive_boats(uid)
@@ -126,7 +128,8 @@ class HappyFishBot
     req = @agent.post("#{API_ROOT}/api/manageplant", "ownerUid" => uid, "itemId" => item, "eventType" => event)
     response = JSON.parse(req.body)
     puts response
-    response['resultVo']['expChange'].to_s.to_i rescue 0
+    exp = response['resultVo']['expChange'].to_s.to_i rescue 0
+    @log.info "Received #{exp} EXP by reparing buildings in island ##{uid}"
   end
   
   def repair_buildings(uid)
@@ -165,7 +168,7 @@ class HappyFishBot
 
     island['islandVo']['buildings'].each do |item|
       remaining = item['payRemainder']
-      deposit = item['deposit']
+      deposit = item['deposit'].to_s.to_i rescue 0
       title = "Pick money #{item['id']} from #{uid}"
       next if not remaining or deposit <= 0 or item['hasSteal'] == 1
       if remaining <= 0
@@ -174,18 +177,6 @@ class HappyFishBot
         @scheduler.add_event(time + remaining, Proc.new {pick_single_money(uid, item['id']) }, title)
       end
     end
-    
-    # island['islandVo']['buildings'].each do |item|
-    #   next if uid != @user_info['user']['uid'] and item['hasSteal'] == 1
-    #   remaining = item['time']
-    #   next if not remaining
-    #   title = "Steal boat #{item['id']} from #{uid}"
-    #   if remaining > 0
-    #     @scheduler.add_event(time, Proc.new {receive_single_boat(uid, item['id']) }, title)
-    #   else
-    #     @scheduler.add_event(time - remaining, Proc.new {receive_single_boat(uid, item['id']) }, title)
-    #   end
-    # end
   end
 
   def analyse_all_users
@@ -196,8 +187,7 @@ class HappyFishBot
 
   def refresh_data
     # repair_all_buildings
-    # analyse_all_users
-    analyse_user('2221')
+    analyse_all_users
     @scheduler.add_event(Time.now + 600, method(:refresh_data), "Refresh data")
   end
 
