@@ -198,7 +198,7 @@ class HappyFishBot
     # repair_all_buildings
     # analyse_all_users
     analyse_user('2221')
-    @scheduler.add_event(Time.now + 300, method(:refresh_data), "Refresh data")
+    @scheduler.add_event(Time.now + 600, method(:refresh_data), "Refresh data")
   end
 
   attr_reader :scheduler
