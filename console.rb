@@ -8,13 +8,10 @@ bot.reload
 
 scheduler = bot.scheduler
 scheduler.add_event(Time.now, bot.method(:refresh_data), "Refresh data")
+scheduler.add_event(Time.now + 300, bot.method(:building_check), "Repair all buildings")
 scheduler.dump_events()
 
 while true
-  if scheduler.remaining_time > 120
-    bot.repair_all_buildings
-  end
-  
   sleep(1)
   scheduler.do_anything
 end
