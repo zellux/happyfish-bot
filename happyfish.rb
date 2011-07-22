@@ -111,7 +111,7 @@ class HappyFishBot
     island = JSON.parse(req.body)
     expsum = 0
     island['dockVo']['boatPositions'].select{|x| x['state'] == 'arrive_1' }.each do |item|
-      next if uid != @user_info['user']['uid'] and item['canSteal'] != 1
+      next if uid != @user_info['user']['uid'] and not item['canSteal']
       exp = receive_single_boat(uid, item["id"])
       expsum += exp
     end
@@ -156,8 +156,9 @@ class HappyFishBot
     export_json(island, "island.yml")
     time = Time.now
     island['dockVo']['boatPositions'].each do |item|
-      remaining = -item['time']
-      next if not remaining
+      remaining = item['time']
+      next if not remaining or not item['canSteal']
+      remaining = -remaining
       title = "Pick visitors #{item['id']} from #{uid}"
       if remaining <= 0
         @scheduler.add_event(time, Proc.new {receive_single_boat(uid, item['id']) }, title)
@@ -187,6 +188,7 @@ class HappyFishBot
 
   def refresh_data
     # repair_all_buildings
+    # analyse_user 's236'
     analyse_all_users
     @scheduler.add_event(Time.now + 600, method(:refresh_data), "Refresh data")
   end
