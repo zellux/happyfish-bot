@@ -21,7 +21,7 @@ class Scheduler
   end
 
   def next_event
-    events[0]
+    @events[0]
   end
 
   def dump_events
@@ -40,8 +40,11 @@ class Scheduler
       did = true
     end
     if did and not @events.empty?
-      dump_events
       @log.info "Next event will be handled #{(@events[0].time - Time.now).to_i} seconds later"
     end
+  end
+
+  def remaining_time
+    next_event.time - Time.now
   end
 end

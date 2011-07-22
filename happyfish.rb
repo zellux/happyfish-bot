@@ -109,6 +109,7 @@ class HappyFishBot
     response = JSON.parse(req.body)
     exp = response['result']['expChange'].to_s.to_i rescue 0
     @log.info "Received #{exp} EXP by picking up visitors from island #{@friends_list[uid]} ##{uid}"
+    exp
   end
 
   def receive_boats(uid)
@@ -134,7 +135,8 @@ class HappyFishBot
     response = JSON.parse(req.body)
     puts response
     exp = response['resultVo']['expChange'].to_s.to_i rescue 0
-    @log.info "Received #{exp} EXP by reparing buildings in island ##{uid}"
+    @log.info "Received #{exp} EXP by reparing buildings in island #{@friends_list[uid]} ##{uid}"
+    exp
   end
   
   def repair_buildings(uid)
