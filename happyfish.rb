@@ -150,24 +150,30 @@ class HappyFishBot
   def analyse_user(uid)
     req = @agent.post("#{API_ROOT}/api/initisland?ts=#{Time.now.to_i}050", "ownerUid" => uid)
     island = JSON.parse(req.body)
+    export_json(island, "island.yml")
     time = Time.now
     island['dockVo']['boatPositions'].each do |item|
-      remaining = item['time']
+      remaining = -item['time']
       next if not remaining
-      title = "Steal boat #{item['id']} from #{uid}"
-      if remaining > 0
+      title = "Pick visitors #{item['id']} from #{uid}"
+      if remaining <= 0
         @scheduler.add_event(time, Proc.new {receive_single_boat(uid, item['id']) }, title)
       else
-        @scheduler.add_event(time - remaining, Proc.new {receive_single_boat(uid, item['id']) }, title)
+        @scheduler.add_event(time + remaining, Proc.new {receive_single_boat(uid, item['id']) }, title)
       end
     end
 
-    # island['islandVo']['buildings'].select{|x| x['deposit'] && x['deposit'].to_i > 0 }.each do |item|
-    #   next if uid != @user_info['user']['uid'] and item['hasSteal'] == 1
-    #   exp, coin = pick_single_money(uid, item['id'])
-    #   expsum += exp
-    #   coinsum += coin
-    # end
+    island['islandVo']['buildings'].each do |item|
+      remaining = item['payRemainder']
+      deposit = item['deposit']
+      title = "Pick money #{item['id']} from #{uid}"
+      next if not remaining or deposit <= 0 or item['hasSteal'] == 1
+      if remaining <= 0
+        @scheduler.add_event(time, Proc.new {pick_single_money(uid, item['id']) }, title)
+      else
+        @scheduler.add_event(time + remaining, Proc.new {pick_single_money(uid, item['id']) }, title)
+      end
+    end
     
     # island['islandVo']['buildings'].each do |item|
     #   next if uid != @user_info['user']['uid'] and item['hasSteal'] == 1
