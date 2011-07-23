@@ -27,7 +27,7 @@ class HappyFishBot
     # @agent.set_proxy('127.0.0.1', 8080)
     @log = Logger.new(STDERR)
     @stat = Logger.new('stat.log')
-    @scheduler = Scheduler.new
+    @scheduler = Scheduler.new(self)
     @friends_list = Hash.new
   end
   
@@ -89,7 +89,7 @@ class HappyFishBot
     coin = response['coinChange'].to_s.to_i rescue 0
     @log.info "Received #{exp} EXP, #{coin} coins from island #{@friends_list[uid]} ##{uid}"
     @stat.info "money, #{exp}, #{coin}, #{uid}" if exp > 0
-    [exp, coin]
+    {"exp" => exp, "money" => coin}
   end
   
   def pick_money(uid = nil)
@@ -123,7 +123,7 @@ class HappyFishBot
     exp = response['result']['expChange'].to_s.to_i rescue 0
     @log.info "Received #{exp} EXP by picking up visitors from island #{@friends_list[uid]} ##{uid}"
     @stat.info "visitor, #{exp}, 0, #{uid}" if exp > 0
-    exp
+    {"exp" => exp}
   end
 
   def receive_boats(uid)
@@ -147,11 +147,10 @@ class HappyFishBot
   def repair_single_building(uid, item, event)
     req = @agent.post("#{API_ROOT}/api/manageplant", "ownerUid" => uid, "itemId" => item, "eventType" => event)
     response = JSON.parse(req.body)
-    puts response
     exp = response['resultVo']['expChange'].to_s.to_i rescue 0
-    @log.info "Received #{exp} EXP by reparing buildings in island #{@friends_list[uid]} ##{uid}"
+    @log.info "Received #{exp} EXP by reparing buildings in island #{@friends_list[uid]} ##{uid}" if exp > 0
     @stat.info "repair, #{exp}, 0, #{uid}" if exp > 0
-    exp
+    {"exp" => exp}
   end
   
   def repair_buildings(uid)
@@ -160,10 +159,15 @@ class HappyFishBot
     expsum = 0
     # export_json(island, 'friend.yml')
     island['islandVo']['buildings'].select{|x| x['event'] && x['event'] == 1 }.each do |item|
-      exp = repair_single_building(uid, item['id'], 1)
+      exp = repair_single_building(uid, item['id'], 1)['exp']
+      if exp > 0
+        export_json(item, 'repair_success.json')
+      else
+        export_json(item, 'repair_fail.json')
+      end
       expsum += exp
     end
-    @log.info "Received #{expsum} EXP by reparing buildings in island ##{uid}"
+    # @log.info "Received #{expsum} EXP by reparing buildings in island ##{uid}"
   end
 
   def repair_all_buildings
@@ -184,9 +188,9 @@ class HappyFishBot
       remaining = -remaining
       title = "Pick visitors #{item['id']} from #{uid}"
       if remaining <= 0
-        @scheduler.add_event(time + 1, Proc.new {receive_single_boat(uid, item['id']) }, title)
+        @scheduler.add_event(time + 1, Proc.new {receive_single_boat(uid, item['id']) }, title, uid)
       else
-        @scheduler.add_event(time + remaining + 1, Proc.new {receive_single_boat(uid, item['id']) }, title)
+        @scheduler.add_event(time + remaining + 1, Proc.new {receive_single_boat(uid, item['id']) }, title, uid)
       end
     end
 
@@ -196,9 +200,9 @@ class HappyFishBot
       title = "Pick money #{item['id']} from #{uid}"
       next if not remaining or deposit <= 0 or (not own and (item['hasSteal'] == true or item['hasSteal'] == 1))
       if remaining <= 0
-        @scheduler.add_event(time + 1, Proc.new {pick_single_money(uid, item['id']) }, title)
+        @scheduler.add_event(time + 1, Proc.new {pick_single_money(uid, item['id']) }, title, uid)
       else
-        @scheduler.add_event(time + remaining + 1, Proc.new {pick_single_money(uid, item['id']) }, title)
+        @scheduler.add_event(time + remaining + 1, Proc.new {pick_single_money(uid, item['id']) }, title, uid)
       end
     end
   end
@@ -217,10 +221,14 @@ class HappyFishBot
   end
 
   def building_check
-    if @scheduler.remaining_time > BUILDING_REPAIR_INTERVAL
+    if @scheduler.remaining_time > BUILDING_REPAIR_INTERVAL + 5
       repair_all_buildings
     end
     @scheduler.add_event(Time.now + BUILDING_REPAIR_INTERVAL, method(:building_check), "Repair all buildings")
+  end
+
+  def myself?(uid)
+    uid == @user_info['user']['uid']
   end
   
   attr_reader :scheduler

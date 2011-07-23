@@ -3,18 +3,20 @@ require 'logger'
 require 'set'
 
 class Scheduler
-  def initialize
+  def initialize(bot)
+    @bot = bot
     @events = []
     @event_keys = Set.new
     @log = Logger.new(STDERR)
   end
 
-  def add_event(time, proc, title="")
+  def add_event(time, proc, title="", uid="")
     return if not title.empty? and @event_keys.include? title
     event = OpenStruct.new
     event.time = time
     event.proc = proc
     event.title = title
+    event.uid = uid
     @events << event
     @event_keys.add title
     @events.sort! {|x,y| [x.time, x.title] <=> [y.time, y.title] }
@@ -36,7 +38,13 @@ class Scheduler
       event = @events.shift
       @event_keys.delete event.title
       # @log.info "Working on #{event.title}"
-      event.proc.call
+      ret = event.proc.call
+      if ret.class == Hash and ret['money'] == 0 and @bot.myself?(event.uid)
+        # Cannot pick any money, do it again 5 seconds later!
+        @log.info "Failed to #{event.title}, do it again in 5 seconds"
+        add_event(Time.now + 5, event.proc, event.title)
+      end
+      
       did = true
     end
     if did and not @events.empty?
