@@ -31,7 +31,7 @@ class HappyFishBot
       agent.user_agent_alias = 'Windows Mozilla'
     }
 
-    @agent.set_proxy('127.0.0.1', 8080)
+    # @agent.set_proxy('127.0.0.1', 8080)
     @log = Logger.new(STDERR)
     @scheduler = Scheduler.new
     @friends_list = Hash.new
