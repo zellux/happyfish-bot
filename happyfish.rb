@@ -179,9 +179,9 @@ class HappyFishBot
       remaining = -remaining
       title = "Pick visitors #{item['id']} from #{uid}"
       if remaining <= 0
-        @scheduler.add_event(time, Proc.new {receive_single_boat(uid, item['id']) }, title)
+        @scheduler.add_event(time + 1, Proc.new {receive_single_boat(uid, item['id']) }, title)
       else
-        @scheduler.add_event(time + remaining, Proc.new {receive_single_boat(uid, item['id']) }, title)
+        @scheduler.add_event(time + remaining + 1, Proc.new {receive_single_boat(uid, item['id']) }, title)
       end
     end
 
@@ -191,9 +191,9 @@ class HappyFishBot
       title = "Pick money #{item['id']} from #{uid}"
       next if not remaining or deposit <= 0 or (not own and (item['hasSteal'] == true or item['hasSteal'] == 1))
       if remaining <= 0
-        @scheduler.add_event(time, Proc.new {pick_single_money(uid, item['id']) }, title)
+        @scheduler.add_event(time + 1, Proc.new {pick_single_money(uid, item['id']) }, title)
       else
-        @scheduler.add_event(time + remaining, Proc.new {pick_single_money(uid, item['id']) }, title)
+        @scheduler.add_event(time + remaining + 1, Proc.new {pick_single_money(uid, item['id']) }, title)
       end
     end
   end
