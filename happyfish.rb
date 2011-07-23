@@ -70,10 +70,11 @@ class HappyFishBot
   def load_friends
     req = @agent.post("#{API_ROOT}/api/getfriends", "pageIndex" => "1", "pageSize" => 350000)
     @friends_info = JSON.parse(req.body)
-    export_json(@friends_info, 'friend.yml')
+    @friends_info['friends'].reject! {|f| f['level'].to_s.to_i <= 5 }
     @friends_info['friends'].each do |f|
       @friends_list[f['uid']] = f['name']
     end
+    export_json(@friends_info, 'friend.yml')
   end
 
   def pick_single_money(uid, item)
