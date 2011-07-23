@@ -35,7 +35,7 @@ class Scheduler
     while Time.now > @events[0].time
       event = @events.shift
       @event_keys.delete event.title
-      @log.info "Working on #{event.title}"
+      # @log.info "Working on #{event.title}"
       event.proc.call
       did = true
     end
