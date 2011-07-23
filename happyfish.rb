@@ -212,7 +212,9 @@ class HappyFishBot
   end
 
   def building_check
-    repair_all_buildings
+    if @scheduler.remaining_time > 60
+      repair_all_buildings
+    end
     @scheduler.add_event(Time.now + BUILDING_REPAIR_INTERVAL, method(:building_check), "Repair all buildings")
   end
   
