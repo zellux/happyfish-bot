@@ -9,6 +9,8 @@ require 'json'
 require 'scheduler'
 
 API_ROOT = "http://t.happyfishgame.com.cn"
+BUILDING_REPAIR_INTERVAL = 60
+RELOAD_INTERVAL = 1800
 
 def export_json(json, filename)
   File.open(filename, 'w') do |out|
@@ -206,12 +208,12 @@ class HappyFishBot
     # repair_all_buildings
     load_friends
     analyse_all_users
-    @scheduler.add_event(Time.now + 1800, method(:refresh_data), "Refresh data")
+    @scheduler.add_event(Time.now + RELOAD_INTERVAL, method(:refresh_data), "Refresh data")
   end
 
   def building_check
     repair_all_buildings
-    @scheduler.add_event(Time.now + 300, method(:building_check), "Repair all buildings")
+    @scheduler.add_event(Time.now + BUILDING_REPAIR_INTERVAL, method(:building_check), "Repair all buildings")
   end
   
   attr_reader :scheduler
