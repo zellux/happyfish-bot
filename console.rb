@@ -12,6 +12,8 @@ config['password'] ||= ask('Please enter your password: ') {|q| q.echo = false}
 bot = HappyFishBot.new
 bot.config = config
 
+@scheduler = bot.scheduler
+
 at_exit {
   File.open(config_file, 'w') do |out|
     YAML::dump(bot.config, out)
@@ -22,7 +24,6 @@ at_exit {
 bot.signin
 bot.reload
 
-@scheduler = bot.scheduler
 @scheduler.add_event(Time.now, bot.method(:refresh_data), "Refresh data")
 @scheduler.add_event(Time.now + BUILDING_REPAIR_INTERVAL, bot.method(:building_check), "Repair all buildings")
 @scheduler.dump_events
