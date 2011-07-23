@@ -9,7 +9,7 @@ require 'json'
 require 'scheduler'
 
 API_ROOT = "http://t.happyfishgame.com.cn"
-BUILDING_REPAIR_INTERVAL = 60
+BUILDING_REPAIR_INTERVAL = 10
 RELOAD_INTERVAL = 1800
 
 def export_json(json, filename)
@@ -26,6 +26,7 @@ class HappyFishBot
 
     # @agent.set_proxy('127.0.0.1', 8080)
     @log = Logger.new(STDERR)
+    @stat = Logger.new('stat.log')
     @scheduler = Scheduler.new
     @friends_list = Hash.new
   end
@@ -86,6 +87,7 @@ class HappyFishBot
     exp = response['expChange'].to_s.to_i rescue 0
     coin = response['coinChange'].to_s.to_i rescue 0
     @log.info "Received #{exp} EXP, #{coin} coins from island #{@friends_list[uid]} ##{uid}"
+    @stat.info "money, #{exp}, #{coin}, #{uid}" if exp > 0
     [exp, coin]
   end
   
@@ -119,6 +121,7 @@ class HappyFishBot
     response = JSON.parse(req.body)
     exp = response['result']['expChange'].to_s.to_i rescue 0
     @log.info "Received #{exp} EXP by picking up visitors from island #{@friends_list[uid]} ##{uid}"
+    @stat.info "visitor, #{exp}, 0, #{uid}" if exp > 0
     exp
   end
 
@@ -146,6 +149,7 @@ class HappyFishBot
     puts response
     exp = response['resultVo']['expChange'].to_s.to_i rescue 0
     @log.info "Received #{exp} EXP by reparing buildings in island #{@friends_list[uid]} ##{uid}"
+    @stat.info "repair, #{exp}, 0, #{uid}" if exp > 0
     exp
   end
   
@@ -212,7 +216,7 @@ class HappyFishBot
   end
 
   def building_check
-    if @scheduler.remaining_time > 60
+    if @scheduler.remaining_time > BUILDING_REPAIR_INTERVAL
       repair_all_buildings
     end
     @scheduler.add_event(Time.now + BUILDING_REPAIR_INTERVAL, method(:building_check), "Repair all buildings")
