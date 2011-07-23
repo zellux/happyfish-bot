@@ -18,15 +18,6 @@ end
 
 class HappyFishBot
   def initialize
-    @config = YAML::load_file('config.yml') rescue {}
-    @config['username'] ||= ask('Please enter your username: ')
-    @config['password'] ||= ask('Please enter your password: ') {|q| q.echo = false}
-    at_exit {
-      File.open('config.yml', 'w') do |out|
-        YAML::dump(@config, out)
-      end
-    }
-
     @agent = Mechanize.new { |agent|
       agent.user_agent_alias = 'Windows Mozilla'
     }
@@ -224,5 +215,6 @@ class HappyFishBot
   end
   
   attr_reader :scheduler
+  attr_accessor :config
 end
 
