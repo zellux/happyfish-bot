@@ -9,7 +9,7 @@ require 'scheduler'
 
 API_ROOT = "http://t.happyfishgame.com.cn"
 BUILDING_REPAIR_INTERVAL = 10
-RELOAD_INTERVAL = 1800
+RELOAD_INTERVAL = 60
 
 def export_json(json, filename)
   File.open(filename, 'w') do |out|
@@ -179,8 +179,9 @@ class HappyFishBot
     req = @agent.post("#{API_ROOT}/api/initisland?ts=#{Time.now.to_i}050", "ownerUid" => uid)
     own = uid == @user_info['user']['uid']
     island = JSON.parse(req.body)
-    if @config['care']
-      latency = @config['care'].include?(uid) ? 300 : 0
+    latency = 0
+    if @config['care'] and @config['care'].include?(uid)
+      latency =  300
     end
     export_json(island, "island.yml")
     time = Time.now
