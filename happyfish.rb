@@ -179,6 +179,9 @@ class HappyFishBot
     req = @agent.post("#{API_ROOT}/api/initisland?ts=#{Time.now.to_i}050", "ownerUid" => uid)
     own = uid == @user_info['user']['uid']
     island = JSON.parse(req.body)
+    if @config['care']
+      latency = @config['care'].include?(uid) ? 300 : 0
+    end
     export_json(island, "island.yml")
     time = Time.now
     island['dockVo']['boatPositions'].each do |item|
@@ -189,7 +192,7 @@ class HappyFishBot
       if remaining <= 0
         @scheduler.add_event(time + 1, Proc.new {receive_single_boat(uid, item['id']) }, title, uid)
       else
-        @scheduler.add_event(time + remaining + 1, Proc.new {receive_single_boat(uid, item['id']) }, title, uid)
+        @scheduler.add_event(time + remaining + 1 + latency, Proc.new {receive_single_boat(uid, item['id']) }, title, uid)
       end
     end
 
@@ -201,7 +204,7 @@ class HappyFishBot
       if remaining <= 0
         @scheduler.add_event(time + 1, Proc.new {pick_single_money(uid, item['id']) }, title, uid)
       else
-        @scheduler.add_event(time + remaining + 1, Proc.new {pick_single_money(uid, item['id']) }, title, uid)
+        @scheduler.add_event(time + remaining + 1 + latency, Proc.new {pick_single_money(uid, item['id']) }, title, uid)
       end
     end
   end
