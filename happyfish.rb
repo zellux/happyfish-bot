@@ -2,7 +2,6 @@
 $: << '.'
 
 require 'yaml'
-require 'highline/import'
 require 'sina'
 require 'logger'
 require 'json'
@@ -26,7 +25,7 @@ class HappyFishBot
 
     # @agent.set_proxy('127.0.0.1', 8080)
     @log = Logger.new(STDERR)
-    @stat = Logger.new('stat.log')
+    @stat = Logger.new('log/stat.log', 'daily')
     @scheduler = Scheduler.new(self)
     @friends_list = Hash.new
   end
@@ -221,10 +220,10 @@ class HappyFishBot
   end
 
   def building_check
-    if @scheduler.remaining_time > BUILDING_REPAIR_INTERVAL + 5
+    if @scheduler.remaining_time > BUILDING_REPAIR_INTERVAL
       repair_all_buildings
     end
-    @scheduler.add_event(Time.now + BUILDING_REPAIR_INTERVAL, method(:building_check), "Repair all buildings")
+    @scheduler.add_event(Time.now + BUILDING_REPAIR_INTERVAL + 5, method(:building_check), "Repair all buildings")
   end
 
   def myself?(uid)

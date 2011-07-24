@@ -1,6 +1,7 @@
 $: << '.'
 
 require 'happyfish'
+require 'highline/import'
 
 config_file = ARGV[0]
 config_file ||= 'config.yml'
