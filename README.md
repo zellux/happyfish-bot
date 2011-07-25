@@ -1,4 +1,4 @@
-This is a bot for the web game [Happy Island](*http://game.weibo.com/happyisland/*).
+This is a bot for the web game [Happy Island](http://game.weibo.com/happyisland/).
 
 Features
 ===
